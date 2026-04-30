@@ -1,3 +1,2 @@
-streamlit>=1.31.0
+streamlit
 google-generativeai
-protobuf==3.20.*
