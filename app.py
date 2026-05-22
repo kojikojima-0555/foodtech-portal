@@ -11,24 +11,35 @@ st.caption("社内規定を100%クリアした安全・高速検索ナビゲー�
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
+# 💡 追加キーワードを記憶するための初期設定
+if "custom_list" not in st.session_state:
+    st.session_state.custom_list = []
+
 # 2. サイドバー（条件設定画面）
 with st.sidebar:
     st.header("条件設定")
     
     st.markdown("**1. テーマの選択・追加**")
     base_options = ["風味向上", "日持ち延長", "食感改良"]
+    options = base_options + st.session_state.custom_list
     
+    # 💡 修正①: 「テーマ（複数選択可）」を上に配置
+    theme = st.multiselect("テーマ（複数選択可）", options, default=["日持ち延長"] + st.session_state.custom_list)
+    
+    # 💡 修正①: 「追加したいキーワード」を下に配置
     custom_input = st.text_input("追加したいキーワード（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
+    # キーワードが入力されたら即座に上の選択肢に合流させる処理
     if custom_input:
-        custom_list = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
-        options = base_options + custom_list
-        default_selected = ["日持ち延長"] + custom_list
-    else:
-        options = base_options
-        default_selected = ["日持ち延長"]
-        
-    theme = st.multiselect("テーマ（複数選択可）", options, default=default_selected)
+        new_items = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
+        added = False
+        for item in new_items:
+            if item not in st.session_state.custom_list:
+                st.session_state.custom_list.append(item)
+                added = True
+        if added:
+            # 画面を再描画して上のmultiselectに即時反映
+            st.rerun()
     
     st.write("---")
     
@@ -36,7 +47,6 @@ with st.sidebar:
     period = st.slider("期間（発行年・出願年）", 2000, current_year, (2020, current_year))
     
     st.write("---")
-    # 💡 改良ポイント: 複数企業を入れられることを明記
     st.markdown("**3. 対象企業の指定**")
     comp = st.text_input("競合名・出願人（複数ある場合はスペース区切り）", value="キユーピー 味の素")
 
@@ -46,26 +56,18 @@ if theme:
 else:
     themes_query = ""
 
-# 💡 修正箇所：複数企業の分割・結合ロジック
 if comp:
-    # 半角スペース、全角スペース、カンマ、読点のどれで区切られても一律で分解します
     comp_list = [c.strip() for c in comp.replace("　", " ").replace(",", " ").replace("、", " ").split(" ") if c.strip()]
-    
-    # Google Scholar用（各企業名をダブルクォーテーションで囲んでOR結合）
     comp_query = " OR ".join([f'"{c}"' for c in comp_list])
-    
-    # JP-NET用（そのままOR結合）
     jp_comp_query = " OR ".join(comp_list)
 else:
     comp_list = []
     comp_query = ""
     jp_comp_query = ""
 
-# Scholar全体のクエリ組み立て
 scholar_query = ""
 if themes_query and comp_query:
     if len(comp_list) > 1:
-        # 企業名が複数の場合は、全体をカッコ ( ) で囲んでAND結合します
         scholar_query = f"({themes_query}) AND ({comp_query})"
     else:
         scholar_query = f"({themes_query}) AND {comp_query}"
@@ -95,7 +97,8 @@ with col1:
         st.warning("左側のサイドバーで条件を指定してください。")
 
 with col2:
-    st.markdown("#### 📑 特許検索 (JP-NET 個別窓用)")
+    # 💡 修正②: タイトルにリンクを埋め込み
+    st.markdown("#### 📑 特許検索 ([JP-NET](https://www.jp-net.jp/) 個別窓用)")
     st.info("※JP-NETの項目別入力画面の各窓に、右上のコピーボタンを使ってそのまま貼り付けてください。")
     
     if theme or comp_list:
@@ -105,11 +108,14 @@ with col2:
             
         if comp_list:
             st.write("**🏢 出願人・権利者・企業名欄 用:**")
-            # 💡 修正箇所: 複数企業がORで綺麗に並んだテキストを出力します
             st.code(jp_comp_query, language="text")
             
         st.write("**📅 期間（西暦）指定欄 用:**")
         st.code(f"開始年: {period[0]} / 終了年: {period[1]}", language="text")
+        
+        st.write("---")
+        # 💡 修正②: コピペした後にすぐ飛べるよう、青いボタンリンクを設置
+        st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary")
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
 
