@@ -1,5 +1,6 @@
 import streamlit as st
 import urllib.parse
+from datetime import datetime
 
 # 1. ページ設定
 st.set_page_config(page_title="食品技術リサーチ・ランチャー", page_icon="🧪", layout="wide")
@@ -7,14 +8,44 @@ st.set_page_config(page_title="食品技術リサーチ・ランチャー", page
 st.title("🧪 食品技術リサーチ・ランチャー")
 st.caption("社内規定を100%クリアした安全・高速検索ナビゲーター")
 
+# 現在の年（西暦）を自動取得
+current_year = datetime.now().year
+
 # 2. サイドバー（条件設定画面）
 with st.sidebar:
     st.header("条件設定")
-    theme = st.multiselect("テーマ（複数選択可）", ["風味向上", "日持ち延長", "食感改良"], default=["日持ち延長"])
-    period = st.slider("期間（発行年・出願年）", 2023, 2026, (2023, 2026))
+    
+    # 💡 修正①: テーマを適宜追加できる機能
+    st.markdown("**1. テーマの選択・追加**")
+    base_options = ["風味向上", "日持ち延長", "食感改良"]
+    
+    # 自由入力欄（カンマや読点で複数同時入力も可能）
+    custom_input = st.text_input("追加したいキーワード（あれば入力）", placeholder="例: 減塩、糖質オフ")
+    
+    # 入力された文字を分解して選択肢に合流させる
+    if custom_input:
+        # カンマや「、」で区切ってリスト化
+        custom_list = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
+        options = base_options + custom_list
+        # 新しく入力されたキーワードは自動的に選択状態にする
+        default_selected = ["日持ち延長"] + custom_list
+    else:
+        options = base_options
+        default_selected = ["日持ち延長"]
+        
+    theme = st.multiselect("テーマ（複数選択可）", options, default=default_selected)
+    
+    st.write("---")
+    
+    # 💡 修正②: 期間を2000年から現在（当年）まで動かせるスライダー
+    st.markdown("**2. 期間の指定**")
+    period = st.slider("期間（発行年・出願年）", 2000, current_year, (2020, current_year))
+    
+    st.write("---")
+    st.markdown("**3. 対象企業の指定**")
     comp = st.text_input("競合名・出願人", value="キユーピー")
 
-# 3. 検索式の自動組み立てロジック（Google Scholar用）
+# 3. 検索式の自動組み立てロジック
 if theme:
     themes_query = " OR ".join([f'"{t}"' for t in theme])
 else:
@@ -55,7 +86,6 @@ with col2:
     if theme or comp:
         if theme:
             st.write("**🔍 キーワード欄（要約・請求項・書誌など）用:**")
-            # 「風味向上 OR 日持ち延長」の形で出力
             st.code(" OR ".join(theme), language="text")
             
         if comp:
