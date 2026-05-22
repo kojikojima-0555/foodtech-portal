@@ -14,13 +14,12 @@ with st.sidebar:
     period = st.slider("期間（発行年・出願年）", 2023, 2026, (2023, 2026))
     comp = st.text_input("競合名・出願人", value="キユーピー")
 
-# 3. 検索式の自動組み立てロジック
+# 3. 検索式の自動組み立てロジック（Google Scholar用）
 if theme:
     themes_query = " OR ".join([f'"{t}"' for t in theme])
 else:
     themes_query = ""
 
-# Google Scholar用のクエリ組み立て
 scholar_query = ""
 if themes_query and comp:
     scholar_query = f"({themes_query}) AND \"{comp}\""
@@ -29,16 +28,13 @@ elif themes_query:
 elif comp:
     scholar_query = f"\"{comp}\""
 
-# URL用に特殊文字を変換
 encoded_scholar_query = urllib.parse.quote(scholar_query)
-
-# Google Scholar用URL（期間指定パラメータ含む）
 scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
 
 # 4. 画面への出力表示
 st.write("---")
 st.markdown("### 📋 生成された検索リンク・特許コマンド")
-st.write("サイドバーで条件を変更すると、以下のリンクと検索式がリアルタイムに更新されます。")
+st.write("サイドバーで条件を変更すると、以下の内容がリアルタイムに更新されます。")
 
 col1, col2 = st.columns(2)
 
@@ -53,13 +49,21 @@ with col1:
         st.warning("左側のサイドバーで条件を指定してください。")
 
 with col2:
-    st.markdown("#### 📑 特許検索 (JP-NET用)")
-    st.info("※JP-NETはログインが必要なため直接リンクが作れません。以下の検索式をコピーして、JP-NETの検索窓にそのまま貼り付けてご利用ください。")
+    st.markdown("#### 📑 特許検索 (JP-NET 個別窓用)")
+    st.info("※JP-NETの項目別入力画面の各窓に、右上のコピーボタンを使ってそのまま貼り付けてください。")
     
     if theme or comp:
-        st.write("**JP-NET貼り付け用テキスト:**")
-        st.code(f"({ ' OR '.join(theme) }) AND {comp}", language="text")
-        st.caption(f"※JP-NETの検索画面側で、期間（期間指定：{period[0]}年〜{period[1]}年）を設定して実行してください。")
+        if theme:
+            st.write("**🔍 キーワード欄（要約・請求項・書誌など）用:**")
+            # 「風味向上 OR 日持ち延長」の形で出力
+            st.code(" OR ".join(theme), language="text")
+            
+        if comp:
+            st.write("**🏢 出願人・権利者・企業名欄 用:**")
+            st.code(comp, language="text")
+            
+        st.write("**📅 期間（西暦）指定欄 用:**")
+        st.code(f"開始年: {period[0]} / 終了年: {period[1]}", language="text")
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
 
@@ -76,4 +80,4 @@ st.markdown("""
 </ul>
 </div>
 </details>
-""", unsafe_allow_html=True) # ←ここを修正しました！
+""", unsafe_allow_html=True)
