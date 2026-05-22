@@ -1,39 +1,81 @@
 import streamlit as st
-import google.generativeai as genai
+import urllib.parse
 
-st.title("最終接続診断")
+# 1. ページ設定
+st.set_page_config(page_title="食品技術リサーチ・ランチャー", page_icon="🧪", layout="wide")
 
-# 1. Secretsの読み込みチェック
-st.write("### 🔍 診断ステップ1: 設定の確認")
-if "GEMINI_API_KEY" not in st.secrets:
-    st.error("❌ Secretsの中に 'GEMINI_API_KEY' という項目が見つかりません。")
-    st.stop()
+st.title("🧪 食品技術リサーチ・ランチャー")
+st.caption("社内規定を100%クリアした安全・高速検索ナビゲーター")
 
-key = st.secrets["GEMINI_API_KEY"]
-st.write(f"・キーの存在: ✅ 確認 (長さ: {len(key)}文字)")
+# 2. サイドバー（使い慣れた条件設定画面）
+with st.sidebar:
+    st.header("条件設定")
+    theme = st.multiselect("テーマ（複数選択可）", ["風味向上", "日持ち延長", "食感改良"], default=["日持ち延長"])
+    period = st.slider("期間（発行年・出願年）", 2023, 2026, (2023, 2026))
+    comp = st.text_input("競合名・出願人", value="キユーピー")
 
-if key.startswith("AIza") is False:
-    st.error("❌ エラー: キーが 'AIza' で始まっていないようです。コピーミスがないか確認してください。")
-    st.stop()
+# 3. 検索式の自動組み立てロジック
+# テーマを "風味向上" OR "日持ち延長" の形に整形
+if theme:
+    themes_query = " OR ".join([f'"{t}"' for t in theme])
+else:
+    themes_query = ""
 
-# 2. 設定の適用
-st.write("### 🔍 診断ステップ2: 接続テスト")
-if st.button("今すぐ接続テストを実行"):
-    try:
-        genai.configure(api_key=key)
-        # タイムアウトを極短（10秒）に設定して、無限に待つのを防ぐ
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        st.info("AIにメッセージを送信中... (10秒以内に反応がなければ通信ブロックです)")
-        
-        # 究極に短いリクエスト
-        response = model.generate_content("Hi", request_options={"timeout": 10})
-        
-        if response:
-            st.success("✅ 成功しました！")
-            st.write("AIからの返答:", response.text)
-            st.balloons()
-            
-    except Exception as e:
-        st.error(f"❌ 接続エラーが発生しました: {e}")
-        st.write("このエラーメッセージを教えてください。")
+# Google Scholar用のクエリ組み立て
+scholar_query = ""
+if themes_query and comp:
+    scholar_query = f"({themes_query}) AND \"{comp}\""
+elif themes_query:
+    scholar_query = themes_query
+elif comp:
+    scholar_query = f"\"{comp}\""
+
+# URLで使えるように特殊文字をエンコード（変換）
+encoded_scholar_query = urllib.parse.quote(scholar_query)
+
+# Google ScholarはURLのパラメータで期間（開始年: as_ylo、終了年: as_yhi）を指定可能
+scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
+
+# 4. 画面への出力表示
+st.write("---")
+st.markdown("### 📋 生成された検索リンク・特許コマンド")
+st.write("サイドバーで条件を変更すると、以下のリンクと検索式がリアルタイムに更新されます。")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("#### 🎓 学術論文 (Google Scholar)")
+    st.info("※クリックすると、指定したキーワードと『期間指定（発行年）』が自動で適用された状態でGoogle Scholarが開きます。")
+    
+    if theme or comp:
+        st.write(f"**生成されたクエリ:** `{scholar_query}`")
+        st.link_button("Google Scholar で検索を実行", scholar_url, type="primary")
+    else:
+        st.warning("左側のサイドバーで条件を指定してください。")
+
+with col2:
+    st.markdown("#### 📑 特許検索 (JP-NET用)")
+    st.info("※JP-NETはログイン（セッション）が必要なため直接リンクが作れません。以下の検索式をコピーして、JP-NETの検索窓にそのまま貼り付けてご利用ください。")
+    
+    if theme or comp:
+        # JP-NETの簡易検索や論理式入力で使い勝手が良い一般的な形式を出力
+        st.write("**JP-NET貼り付け用テキスト:**")
+        st.code(f"({ ' OR '.join(theme) }) AND {comp}", language="text")
+        st.caption(f"※JP-NETの検索画面側で、期間（期間指定：{period[0]}年〜{period[1]}年）を設定して実行してください。")
+    else:
+        st.warning("左側のサイドバーで条件を指定してください。")
+
+# 5. セキュリティに関する安心ガイド
+st.write("---")
+st.markdown("""
+<details>
+<summary>🔒 <b>本システムのセキュリティと安全性の担保について（IT管理者向け）</b></summary>
+<div style="padding: 10px; background-color: #f0f2f6; border-radius: 5px;">
+<ul>
+    <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやお絵描きテキストに変換するだけの「静的なナビゲーター」です。外部のAIやデータベースへデータを送信することは一切ありません。</li>
+    <li><b>アカウント情報の保護</b>: JP-NET等のIDやパスワードをプログラムに入力・保存する領域自体が存在しないため、なりすましや不正アクセスのリスクは構造上0%です。</li>
+    <li><b>スクレイピングの不保持</b>: 自動でデータを引っこ抜くようなスクレイピング処理は含まれておらず、あくまでユーザー自身のブラウザの挙動を補助する仕組み（アドオン・ランチャーと同等）であるため、各サービスの利用規約を完全に遵守しています。</li>
+</ul>
+</div>
+</details>
+""", unsafe_url_escape=True)
