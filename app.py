@@ -25,39 +25,48 @@ st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; marg
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 💡 修正①: 衝突を避けるため、選択状態を安全に管理する初期設定
+# 初期設定用の固定3テーマ
+base_options = ["風味向上", "日持ち延長", "食感改良"]
+
 if "custom_list" not in st.session_state:
     st.session_state.custom_list = []
 if "selected_themes" not in st.session_state:
     st.session_state.selected_themes = ["日持ち延長"]
+
+# 💡 修正①: エンター1回で即座にデータを追加・反映するための専用の裏処理（コールバック関数）
+def handle_theme_addition():
+    val = st.session_state.theme_input_widget
+    if val:
+        # カンマや「、」で区切ってリスト化
+        new_items = [x.strip() for x in val.replace("、", ",").split(",") if x.strip()]
+        for item in new_items:
+            # 選択肢リストに未登録なら追加
+            if item not in st.session_state.custom_list and item not in base_options:
+                st.session_state.custom_list.append(item)
+            # 現在のチェック（選択）状態にも即座に合流させる
+            if item not in st.session_state.selected_themes:
+                st.session_state.selected_themes.append(item)
+        # 💡 追加後、入力欄の文字をパッと自動で消去して次の入力をしやすくする
+        st.session_state.theme_input_widget = ""
 
 # 2. サイドバー（条件設定画面）
 with st.sidebar:
     st.header("条件設定")
     
     st.markdown("**1. テーマの選択・追加**")
-    base_options = ["風味向上", "日持ち延長", "食感改良"]
     options = base_options + [x for x in st.session_state.custom_list if x not in base_options]
     
-    # 💡 修正①: keyを使わず、default引数とセッション状態を直接同期させる安全な方式に変更
+    # 選択状態をセッション状態と同期
     theme = st.multiselect("テーマ（複数選択可）", options, default=st.session_state.selected_themes)
     st.session_state.selected_themes = theme
     
-    # ラベル: 追加したいテーマ
-    custom_input = st.text_input("追加したいテーマ（あれば入力）", placeholder="例: 減塩、糖質オフ")
-    
-    if custom_input:
-        new_items = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
-        added = False
-        for item in new_items:
-            if item not in st.session_state.custom_list and item not in base_options:
-                st.session_state.custom_list.append(item)
-                added = True
-            if item not in st.session_state.selected_themes:
-                st.session_state.selected_themes.append(item)
-                added = True
-        if added:
-            st.rerun()
+    # 💡 修正①: on_change と key を連携させ、1回のエンターで遅延なく処理を実行します
+    st.text_input(
+        "追加したいテーマ（あれば入力）", 
+        placeholder="例: 減塩、糖質オフ", 
+        key="theme_input_widget", 
+        on_change=handle_theme_addition
+    )
     
     st.write("---")
     
@@ -84,9 +93,7 @@ else:
 themes_raw = " OR ".join([f'"{t}"' for t in theme]) if theme else ""
 comp_raw = " OR ".join([f'"{c}"' for c in comp_list]) if comp_list else ""
 
-# ------------------------------------------
-# A. Google Scholar 用のクエリ（安定稼働中）
-# ------------------------------------------
+# A. Google Scholar 用のクエリ
 scholar_query = ""
 if themes_raw and comp_raw:
     scholar_query = f"({themes_raw}) AND ({comp_raw})"
@@ -98,10 +105,7 @@ elif comp_raw:
 encoded_scholar_query = urllib.parse.quote(scholar_query)
 scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
 
-# ------------------------------------------
-# 💡 B. Google Patents 用のクエリ（構文エラー完全修正版）
-# ------------------------------------------
-# Google Patentsの仕様（ANDの代わりにスペースを使い、企業名を""で囲む）に100%適合させました。
+# B. Google Patents 用のクエリ
 patents_query = ""
 if themes_raw and comp_raw:
     patents_query = f"({themes_raw}) ({comp_raw})"
@@ -110,7 +114,6 @@ elif themes_raw:
 elif comp_raw:
     patents_query = f"({comp_raw})"
 
-# URLエンコード
 encoded_patents_query = urllib.parse.quote(patents_query)
 patents_url = f"https://patents.google.com/?q={encoded_patents_query}&after={period[0]}0101&before={period[1]}1231"
 
