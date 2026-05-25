@@ -25,28 +25,25 @@ st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; marg
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 初期設定用の固定3テーマ
-base_options = ["風味向上", "日持ち延長", "食感改良"]
-
-if "custom_list" not in st.session_state:
-    st.session_state.custom_list = []
+# 💡 修正①: 選択肢の「器（うつわ）」と「チェック状態」を完全にシステムメモリで一元管理する
+if "options" not in st.session_state:
+    st.session_state.options = ["風味向上", "日持ち延長", "食感改良"]
 if "selected_themes" not in st.session_state:
     st.session_state.selected_themes = ["日持ち延長"]
 
-# 💡 修正①: エンター1回で即座にデータを追加・反映するための専用の裏処理（コールバック関数）
+# 1回のエンターで遅延なく処理を実行するコールバック関数
 def handle_theme_addition():
     val = st.session_state.theme_input_widget
     if val:
-        # カンマや「、」で区切ってリスト化
         new_items = [x.strip() for x in val.replace("、", ",").split(",") if x.strip()]
         for item in new_items:
-            # 選択肢リストに未登録なら追加
-            if item not in st.session_state.custom_list and item not in base_options:
-                st.session_state.custom_list.append(item)
-            # 現在のチェック（選択）状態にも即座に合流させる
+            # 選択肢の「器」に存在しなければ追加
+            if item not in st.session_state.options:
+                st.session_state.options.append(item)
+            # 現在のチェック（選択）状態にも確実に合流させる
             if item not in st.session_state.selected_themes:
                 st.session_state.selected_themes.append(item)
-        # 💡 追加後、入力欄の文字をパッと自動で消去して次の入力をしやすくする
+        # 入力欄の文字を自動で消去
         st.session_state.theme_input_widget = ""
 
 # 2. サイドバー（条件設定画面）
@@ -54,13 +51,11 @@ with st.sidebar:
     st.header("条件設定")
     
     st.markdown("**1. テーマの選択・追加**")
-    options = base_options + [x for x in st.session_state.custom_list if x not in base_options]
     
-    # 選択状態をセッション状態と同期
-    theme = st.multiselect("テーマ（複数選択可）", options, default=st.session_state.selected_themes)
-    st.session_state.selected_themes = theme
+    # 💡 修正①: default引数を完全に廃止し、key="selected_themes" でメモリと直結
+    theme = st.multiselect("テーマ（複数選択可）", st.session_state.options, key="selected_themes")
     
-    # 💡 修正①: on_change と key を連携させ、1回のエンターで遅延なく処理を実行します
+    # 入力フォーム
     st.text_input(
         "追加したいテーマ（あれば入力）", 
         placeholder="例: 減塩、糖質オフ", 
