@@ -63,20 +63,27 @@ with st.sidebar:
     st.markdown("**3. 対象企業の指定**")
     comp = st.text_input("競合名・出願人（複数ある場合はスペース区切り）", value="キユーピー 味の素")
 
+# ==========================================
 # 3. 検索式の自動組み立てロジック
+# ==========================================
+
+# 共通の企業名リスト作成
+if comp:
+    comp_list = [c.strip() for c in comp.replace(" ", " ").replace(",", " ").replace("、", " ").split(" ") if c.strip()]
+    jp_comp_query = " OR ".join(comp_list)
+else:
+    comp_list = []
+    jp_comp_query = ""
+
+# ------------------------------------------
+# A. Google Scholar 用のロジック（従来通り）
+# ------------------------------------------
 if theme:
     themes_query = " OR ".join([f'"{t}"' for t in theme])
 else:
     themes_query = ""
 
-if comp:
-    comp_list = [c.strip() for c in comp.replace(" ", " ").replace(",", " ").replace("、", " ").split(" ") if c.strip()]
-    comp_query = " OR ".join([f'"{c}"' for c in comp_list])
-    jp_comp_query = " OR ".join(comp_list)
-else:
-    comp_list = []
-    comp_query = ""
-    jp_comp_query = ""
+comp_query = " OR ".join([f'"{c}"' for c in comp_list]) if comp_list else ""
 
 scholar_query = ""
 if themes_query and comp_query:
@@ -90,14 +97,39 @@ elif comp_query:
     scholar_query = comp_query
 
 encoded_scholar_query = urllib.parse.quote(scholar_query)
-
-# ① Google Scholar用のURL（年単位のパラメータ）
 scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
 
-# 💡 ② Google Patents用のURL（日付単位のパラメータに自動変換して組み込み）
-patents_url = f"https://patents.google.com/?q={encoded_scholar_query}&after={period[0]}0101&before={period[1]}1231"
+# ------------------------------------------
+# 💡 B. Google Patents 用の特殊ロジック（新規修正）
+# ------------------------------------------
+# 特許用に最適化（""を外し、スペース区切りをANDとする）
+p_theme_part = " OR ".join(theme) if theme else ""
+if len(theme) > 1:
+    p_theme_part = f"({p_theme_part})"
 
+# 出願人を明示する「assignee:」構文を自動組み立て
+if comp_list:
+    p_comp_core = " OR ".join(comp_list)
+    p_comp_part = f"assignee:({p_comp_core})" if len(comp_list) > 1 else f"assignee:{comp_list[0]}"
+else:
+    p_comp_part = ""
+
+# Patents全体のクエリを結合（スペースで繋ぐことでGoogle特許の正しいANDになる）
+if p_theme_part and p_comp_part:
+    patents_query = f"{p_theme_part} {p_part_comp_fix if 'p_part_comp_fix' in locals() else p_comp_part}"
+elif p_theme_part:
+    patents_query = p_theme_part
+else:
+    patents_query = p_comp_part
+
+# Google Patentsは quote_plus (スペースを+に変換) を使うと完全に動作する
+encoded_patents_query = urllib.parse.quote_plus(patents_query)
+patents_url = f"https://patents.google.com/?q={encoded_patents_query}&after={period[0]}0101&before={period[1]}1231"
+
+
+# ==========================================
 # 4. 画面への出力表示
+# ==========================================
 st.write("---")
 st.markdown("<h4 style='font-size: 16px; margin-top:0px; margin-bottom:5px;'>📋 生成された検索リンク・特許コマンド</h4>", unsafe_allow_html=True)
 
@@ -112,9 +144,9 @@ with col1:
         st.link_button("Google Scholar で検索を実行", scholar_url, type="primary", use_container_width=True)
         
         st.write("---")
-        # 💡 追加箇所: Google Patentsの自動検索セクション
         st.markdown("##### 🌐 グローバル特許 (Google Patents)")
-        st.info("※クリックすると、海外特許を含む世界中の特許が自動翻訳・期間指定された状態で開きます。")
+        st.info("※クリックすると、海外特許を含む世界中の特許が出願人（企業名）指定・期間指定された状態で開きます。")
+        st.write(f"**特許専用最適化クエリ:** `{patents_query}`")
         st.link_button("Google Patents で特許検索を実行", patents_url, type="primary", use_container_width=True)
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
@@ -166,7 +198,7 @@ st.markdown("""
 <summary>🔒 <b>本システムのセキュリティと安全性の担保について（IT管理者向け）</b></summary>
 <div style="padding: 10px; background-color: #f0f2f6; border-radius: 5px; color: #31333F; font-size: 13px;">
 <ul>
-    <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやコピー用テキストに変換するだけの「静的なナビゲーター」です。外部 of AIやデータベースへデータを送信することは一切ありません。</li>
+    <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやコピー用テキストに変換するだけの「静的なナビゲーター」です。外部のAIやデータベースへデータを送信することは一切ありません。</li>
     <li><b>アカウント情報の保護</b>: JP-NET等のIDやパスワードをプログラムに入力・保存する領域自体が存在しないため、なりすましや不正アクセスのリスクは構造上0%です。</li>
     <li><b>スクレイピングの不保持</b>: 自動でデータを引っこ抜くようなスクレイピング処理は含まれておらず、あくまでユーザー自身のブラウザの挙動を補助する仕組み（便利リンク）であるため、各サービスの利用規約を完全に遵守しています。</li>
 </ul>
