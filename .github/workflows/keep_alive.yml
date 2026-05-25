@@ -1,0 +1,16 @@
+name: Keep Streamlit App Alive
+
+on:
+  schedule:
+    # 毎日、日本時間の午前9時（UTC 24:00）に自動実行
+    - cron: '0 0 * * *'
+  workflow_dispatch: # ボタンを押して手動で実行することも可能にする
+
+jobs:
+  ping_app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Streamlit App
+        run: |
+          # 👇 以下のURLをご自身のStreamlitアプリの実際のURLに書き換えてください
+          curl -sI "https://foodtech-appgit-msgjve5ruytzjpnwuqiv9a.streamlit.app/#google-scholar"
