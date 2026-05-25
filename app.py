@@ -2,14 +2,14 @@ import streamlit as st
 import urllib.parse
 from datetime import datetime
 
-# 1. ページ設定と画面の余白を極限まで詰めるスタイル調整
+# 1. ページ設定と画面の余白調整
 st.set_page_config(page_title="食品技術リサーチ・ランチャー", page_icon="🧪", layout="wide")
 
 st.markdown("""
     <style>
-    /* 画面上部の無駄な余白を削る */
+    /* 💡 修正①: 画面上部の余白を文字が切れない適度な高さ（2.5rem）に調整 */
     .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 2.5rem !important;
         padding-bottom: 1rem !important;
     }
     /* コマンドボックスの下部余白を詰める */
@@ -19,9 +19,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 💡 修正①: 表題のフォントを小さく、マージンを最小に
-st.markdown("<h2 style='font-size: 22px; margin-bottom: 0px; padding-bottom: 0px;'>🧪 食品技術リサーチ・ランチャー</h2>", unsafe_allow_html=True)
-st.caption("社内規定を100%クリアした安全・高速検索ナビゲーター")
+# 💡 修正①・②: フォントを少し大きく(26px)し、上部が切れないよう高さを確保。サブタイトルの一文は削除しました。
+st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; margin-bottom: 15px; padding-top: 5px; padding-bottom: 0px;'>🧪 食品技術リサーチ・ランチャー</h2>", unsafe_allow_html=True)
 
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
@@ -112,7 +111,6 @@ with col2:
     if theme or comp_list:
         if theme:
             st.write("**🔍 キーワード欄 用:**")
-            # 💡 修正②: 縦長に伸びるのを防ぐため、キーワード窓を2列のグリッドに並べる
             kw_cols = st.columns(2)
             for i, t in enumerate(theme):
                 with kw_cols[i % 2]:
@@ -124,8 +122,27 @@ with col2:
             st.code(jp_comp_query, language="text")
             
         st.write("---")
+        # JP-NETは既存のスマートな青いボタン
         st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary", use_container_width=True)
-        st.link_button("簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)", "https://www.j-platpat.inpit.go.jp/", use_container_width=True)
+        
+        # 💡 修正③: J-PlatPatボタンに「具合の良い深みのあるグリーン」を適用
+        st.markdown("""
+            <a href="https://www.j-platpat.inpit.go.jp/" target="_blank" style="
+                display: block;
+                width: 100%;
+                text-align: center;
+                background-color: #2E7D32; /* 具合の良い上品な緑色 */
+                color: white !important;
+                padding: 10px 16px;
+                font-size: 14px;
+                font-weight: 500;
+                text-decoration: none;
+                border-radius: 8px;
+                box-sizing: border-box;
+                margin-top: 8px;
+                border: none;
+            ">簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)</a>
+        """, unsafe_allow_html=True)
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
 
