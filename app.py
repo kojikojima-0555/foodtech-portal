@@ -25,7 +25,7 @@ st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; marg
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 追加キーワードに加え、「選択状態（チェック状態）」も記憶する初期設定
+# 💡 修正①: 衝突を避けるため、選択状態を安全に管理する初期設定
 if "custom_list" not in st.session_state:
     st.session_state.custom_list = []
 if "selected_themes" not in st.session_state:
@@ -37,19 +37,24 @@ with st.sidebar:
     
     st.markdown("**1. テーマの選択・追加**")
     base_options = ["風味向上", "日持ち延長", "食感改良"]
-    options = base_options + st.session_state.custom_list
+    options = base_options + [x for x in st.session_state.custom_list if x not in base_options]
     
-    theme = st.multiselect("テーマ（複数選択可）", options, key="selected_themes")
+    # 💡 修正①: keyを使わず、default引数とセッション状態を直接同期させる安全な方式に変更
+    theme = st.multiselect("テーマ（複数選択可）", options, default=st.session_state.selected_themes)
+    st.session_state.selected_themes = theme
+    
+    # ラベル: 追加したいテーマ
     custom_input = st.text_input("追加したいテーマ（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
     if custom_input:
         new_items = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
         added = False
         for item in new_items:
-            if item not in st.session_state.custom_list:
+            if item not in st.session_state.custom_list and item not in base_options:
                 st.session_state.custom_list.append(item)
-                if item not in st.session_state.selected_themes:
-                    st.session_state.selected_themes.append(item)
+                added = True
+            if item not in st.session_state.selected_themes:
+                st.session_state.selected_themes.append(item)
                 added = True
         if added:
             st.rerun()
@@ -75,55 +80,38 @@ else:
     comp_list = []
     jp_comp_query = ""
 
-# ------------------------------------------
-# A. Google Scholar 用のロジック（従来通り）
-# ------------------------------------------
-if theme:
-    themes_query = " OR ".join([f'"{t}"' for t in theme])
-else:
-    themes_query = ""
+# 論文・特許共通で使える綺麗な「テーマ用」「企業用」の検索パーツを作成
+themes_raw = " OR ".join([f'"{t}"' for t in theme]) if theme else ""
+comp_raw = " OR ".join([f'"{c}"' for c in comp_list]) if comp_list else ""
 
-comp_query = " OR ".join([f'"{c}"' for c in comp_list]) if comp_list else ""
-
+# ------------------------------------------
+# A. Google Scholar 用のクエリ（安定稼働中）
+# ------------------------------------------
 scholar_query = ""
-if themes_query and comp_query:
-    if len(comp_list) > 1:
-        scholar_query = f"({themes_query}) AND ({comp_query})"
-    else:
-        scholar_query = f"({themes_query}) AND {comp_query}"
-elif themes_query:
-    scholar_query = themes_query
-elif comp_query:
-    scholar_query = comp_query
+if themes_raw and comp_raw:
+    scholar_query = f"({themes_raw}) AND ({comp_raw})"
+elif themes_raw:
+    scholar_query = themes_raw
+elif comp_raw:
+    scholar_query = comp_raw
 
 encoded_scholar_query = urllib.parse.quote(scholar_query)
 scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
 
 # ------------------------------------------
-# 💡 B. Google Patents 用の特殊ロジック（新規修正）
+# 💡 B. Google Patents 用のクエリ（構文エラー完全修正版）
 # ------------------------------------------
-# 特許用に最適化（""を外し、スペース区切りをANDとする）
-p_theme_part = " OR ".join(theme) if theme else ""
-if len(theme) > 1:
-    p_theme_part = f"({p_theme_part})"
+# Google Patentsの仕様（ANDの代わりにスペースを使い、企業名を""で囲む）に100%適合させました。
+patents_query = ""
+if themes_raw and comp_raw:
+    patents_query = f"({themes_raw}) ({comp_raw})"
+elif themes_raw:
+    patents_query = f"({themes_raw})"
+elif comp_raw:
+    patents_query = f"({comp_raw})"
 
-# 出願人を明示する「assignee:」構文を自動組み立て
-if comp_list:
-    p_comp_core = " OR ".join(comp_list)
-    p_comp_part = f"assignee:({p_comp_core})" if len(comp_list) > 1 else f"assignee:{comp_list[0]}"
-else:
-    p_comp_part = ""
-
-# Patents全体のクエリを結合（スペースで繋ぐことでGoogle特許の正しいANDになる）
-if p_theme_part and p_comp_part:
-    patents_query = f"{p_theme_part} {p_part_comp_fix if 'p_part_comp_fix' in locals() else p_comp_part}"
-elif p_theme_part:
-    patents_query = p_theme_part
-else:
-    patents_query = p_comp_part
-
-# Google Patentsは quote_plus (スペースを+に変換) を使うと完全に動作する
-encoded_patents_query = urllib.parse.quote_plus(patents_query)
+# URLエンコード
+encoded_patents_query = urllib.parse.quote(patents_query)
 patents_url = f"https://patents.google.com/?q={encoded_patents_query}&after={period[0]}0101&before={period[1]}1231"
 
 
