@@ -11,7 +11,7 @@ st.caption("社内規定を100%クリアした安全・高速検索ナビゲー�
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 💡 追加キーワードを記憶するための初期設定
+# 追加キーワードを記憶するための初期設定
 if "custom_list" not in st.session_state:
     st.session_state.custom_list = []
 
@@ -29,7 +29,6 @@ with st.sidebar:
     # 💡 修正①: 「追加したいキーワード」を下に配置
     custom_input = st.text_input("追加したいキーワード（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
-    # キーワードが入力されたら即座に上の選択肢に合流させる処理
     if custom_input:
         new_items = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
         added = False
@@ -38,7 +37,6 @@ with st.sidebar:
                 st.session_state.custom_list.append(item)
                 added = True
         if added:
-            # 画面を再描画して上のmultiselectに即時反映
             st.rerun()
     
     st.write("---")
@@ -57,7 +55,7 @@ else:
     themes_query = ""
 
 if comp:
-    comp_list = [c.strip() for c in comp.replace("　", " ").replace(",", " ").replace("、", " ").split(" ") if c.strip()]
+    comp_list = [c.strip() for c in comp.replace(" ", " ").replace(",", " ").replace("、", " ").split(" ") if c.strip()]
     comp_query = " OR ".join([f'"{c}"' for c in comp_list])
     jp_comp_query = " OR ".join(comp_list)
 else:
@@ -97,25 +95,27 @@ with col1:
         st.warning("左側のサイドバーで条件を指定してください。")
 
 with col2:
-    # 💡 修正②: タイトルにリンクを埋め込み
     st.markdown("#### 📑 特許検索 ([JP-NET](https://www.jp-net.jp/) 個別窓用)")
     st.info("※JP-NETの項目別入力画面の各窓に、右上のコピーボタンを使ってそのまま貼り付けてください。")
     
     if theme or comp_list:
         if theme:
-            st.write("**🔍 キーワード欄（要約・請求項・書誌など）用:**")
-            st.code(" OR ".join(theme), language="text")
+            st.write("**🔍 キーワード欄 用（1つの窓に1単語ずつ入力可能）:**")
+            # 💡 修正①: ORでまとめず、一つずつの独立したコピー窓に分割
+            for i, t in enumerate(theme, 1):
+                st.caption(f"キーワード {i}")
+                st.code(t, language="text")
             
         if comp_list:
             st.write("**🏢 出願人・権利者・企業名欄 用:**")
             st.code(jp_comp_query, language="text")
             
-        st.write("**📅 期間（西暦）指定欄 用:**")
-        st.code(f"開始年: {period[0]} / 終了年: {period[1]}", language="text")
+        # 💡 修正②: 期間（西暦）指定欄用の枠（st.code）を完全に削除しました
         
         st.write("---")
-        # 💡 修正②: コピペした後にすぐ飛べるよう、青いボタンリンクを設置
-        st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary")
+        # 💡 修正③: JP-NETボタンの下にJ-PlatPatボタンを追加（幅をきれいに統一）
+        st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary", use_container_width=True)
+        st.link_button("簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)", "https://www.j-platpat.inpit.go.jp/", use_container_width=True)
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
 
