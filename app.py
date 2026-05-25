@@ -7,7 +7,7 @@ st.set_page_config(page_title="食品技術リサーチ・ランチャー", page
 
 st.markdown("""
     <style>
-    /* 💡 修正①: 画面上部の余白を文字が切れない適度な高さ（2.5rem）に調整 */
+    /* 画面上部の余白調整 */
     .block-container {
         padding-top: 2.5rem !important;
         padding-bottom: 1rem !important;
@@ -19,7 +19,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 💡 修正①・②: フォントを少し大きく(26px)し、上部が切れないよう高さを確保。サブタイトルの一文は削除しました。
+# タイトルの装飾
 st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; margin-bottom: 15px; padding-top: 5px; padding-bottom: 0px;'>🧪 食品技術リサーチ・ランチャー</h2>", unsafe_allow_html=True)
 
 # 現在の年（西暦）を自動取得
@@ -122,25 +122,25 @@ with col2:
             st.code(jp_comp_query, language="text")
             
         st.write("---")
-        # JP-NETは既存のスマートな青いボタン
+        # JP-NET（既存の青いボタン）
         st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary", use_container_width=True)
         
-        # 💡 修正③: J-PlatPatボタンに「具合の良い深みのあるグリーン」を適用
+        # 💡 修正箇所: J-PlatPatボタンを読みやすいパステルグリーン×濃い緑文字に変更
         st.markdown("""
             <a href="https://www.j-platpat.inpit.go.jp/" target="_blank" style="
                 display: block;
                 width: 100%;
                 text-align: center;
-                background-color: #2E7D32; /* 具合の良い上品な緑色 */
-                color: white !important;
+                background-color: #E8F5E9; /* 目に優しいパステルグリーン */
+                color: #1B5E20 !important; /* 文字を濃い緑にして視認性を確保 */
                 padding: 10px 16px;
                 font-size: 14px;
-                font-weight: 500;
+                font-weight: 600;          /* 太字にして読みやすさをアップ */
                 text-decoration: none;
                 border-radius: 8px;
                 box-sizing: border-box;
                 margin-top: 8px;
-                border: none;
+                border: 1px solid #C8E6C9; /* 輪郭をはっきりさせるための薄い枠線 */
             ">簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)</a>
         """, unsafe_allow_html=True)
     else:
