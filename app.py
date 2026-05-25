@@ -25,9 +25,11 @@ st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; marg
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 追加キーワードを記憶するための初期設定
+# 💡 修正①: 追加キーワードに加え、「選択状態（チェック状態）」も記憶する初期設定を追加
 if "custom_list" not in st.session_state:
     st.session_state.custom_list = []
+if "selected_themes" not in st.session_state:
+    st.session_state.selected_themes = ["日持ち延長"]
 
 # 2. サイドバー（条件設定画面）
 with st.sidebar:
@@ -37,8 +39,11 @@ with st.sidebar:
     base_options = ["風味向上", "日持ち延長", "食感改良"]
     options = base_options + st.session_state.custom_list
     
-    theme = st.multiselect("テーマ（複数選択可）", options, default=["日持ち延長"] + st.session_state.custom_list)
-    custom_input = st.text_input("追加したいキーワード（あれば入力）", placeholder="例: 減塩、糖質オフ")
+    # 💡 修正①: key="selected_themes" を指定し、ユーザーの手動選択をシステムに記憶させます
+    theme = st.multiselect("テーマ（複数選択可）", options, key="selected_themes")
+    
+    # 💡 修正②: ラベルを「追加したいテーマ」に変更しました
+    custom_input = st.text_input("追加したいテーマ（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
     if custom_input:
         new_items = [x.strip() for x in custom_input.replace("、", ",").split(",") if x.strip()]
@@ -46,6 +51,9 @@ with st.sidebar:
         for item in new_items:
             if item not in st.session_state.custom_list:
                 st.session_state.custom_list.append(item)
+                # 💡 修正①: 新しく文字入力されたテーマを、現在の選択状態リストにも合流させて消えないようにします
+                if item not in st.session_state.selected_themes:
+                    st.session_state.selected_themes.append(item)
                 added = True
         if added:
             st.rerun()
@@ -122,25 +130,23 @@ with col2:
             st.code(jp_comp_query, language="text")
             
         st.write("---")
-        # JP-NET（既存の青いボタン）
         st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary", use_container_width=True)
         
-        # 💡 修正箇所: J-PlatPatボタンを読みやすいパステルグリーン×濃い緑文字に変更
         st.markdown("""
             <a href="https://www.j-platpat.inpit.go.jp/" target="_blank" style="
                 display: block;
                 width: 100%;
                 text-align: center;
-                background-color: #E8F5E9; /* 目に優しいパステルグリーン */
-                color: #1B5E20 !important; /* 文字を濃い緑にして視認性を確保 */
+                background-color: #E8F5E9;
+                color: #1B5E20 !important;
                 padding: 10px 16px;
                 font-size: 14px;
-                font-weight: 600;          /* 太字にして読みやすさをアップ */
+                font-weight: 600;
                 text-decoration: none;
                 border-radius: 8px;
                 box-sizing: border-box;
                 margin-top: 8px;
-                border: 1px solid #C8E6C9; /* 輪郭をはっきりさせるための薄い枠線 */
+                border: 1px solid #C8E6C9;
             ">簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)</a>
         """, unsafe_allow_html=True)
     else:
