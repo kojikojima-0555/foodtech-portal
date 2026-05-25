@@ -2,10 +2,25 @@ import streamlit as st
 import urllib.parse
 from datetime import datetime
 
-# 1. ページ設定
+# 1. ページ設定と画面の余白を極限まで詰めるスタイル調整
 st.set_page_config(page_title="食品技術リサーチ・ランチャー", page_icon="🧪", layout="wide")
 
-st.title("🧪 食品技術リサーチ・ランチャー")
+st.markdown("""
+    <style>
+    /* 画面上部の無駄な余白を削る */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1rem !important;
+    }
+    /* コマンドボックスの下部余白を詰める */
+    div.stCode {
+        margin-bottom: 0.5rem !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 💡 修正①: 表題のフォントを小さく、マージンを最小に
+st.markdown("<h2 style='font-size: 22px; margin-bottom: 0px; padding-bottom: 0px;'>🧪 食品技術リサーチ・ランチャー</h2>", unsafe_allow_html=True)
 st.caption("社内規定を100%クリアした安全・高速検索ナビゲーター")
 
 # 現在の年（西暦）を自動取得
@@ -23,10 +38,7 @@ with st.sidebar:
     base_options = ["風味向上", "日持ち延長", "食感改良"]
     options = base_options + st.session_state.custom_list
     
-    # 💡 修正①: 「テーマ（複数選択可）」を上に配置
     theme = st.multiselect("テーマ（複数選択可）", options, default=["日持ち延長"] + st.session_state.custom_list)
-    
-    # 💡 修正①: 「追加したいキーワード」を下に配置
     custom_input = st.text_input("追加したいキーワード（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
     if custom_input:
@@ -79,14 +91,13 @@ scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&a
 
 # 4. 画面への出力表示
 st.write("---")
-st.markdown("### 📋 生成された検索リンク・特許コマンド")
-st.write("サイドバーで条件を変更すると、以下の内容がリアルタイムに更新されます。")
+st.markdown("<h4 style='font-size: 16px; margin-top:0px; margin-bottom:5px;'>📋 生成された検索リンク・特許コマンド</h4>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("#### 🎓 学術論文 (Google Scholar)")
-    st.info("※クリックすると、指定したキーワードと『期間指定（発行年）』が自動で適用された状態でGoogle Scholarが開きます。")
+    st.markdown("##### 🎓 学術論文 (Google Scholar)")
+    st.info("※クリックすると、指定したキーワードと『期間指定』が自動適用されてGoogle Scholarが開きます。")
     
     if theme or comp_list:
         st.write(f"**生成されたクエリ:** `{scholar_query}`")
@@ -95,25 +106,24 @@ with col1:
         st.warning("左側のサイドバーで条件を指定してください。")
 
 with col2:
-    st.markdown("#### 📑 特許検索 ([JP-NET](https://www.jp-net.jp/) 個別窓用)")
-    st.info("※JP-NETの項目別入力画面の各窓に、右上のコピーボタンを使ってそのまま貼り付けてください。")
+    st.markdown("##### 📑 特許検索 ([JP-NET](https://www.jp-net.jp/) 個別窓用)")
+    st.info("※JP-NETの項目別入力画面の各窓に、コピーボタンを使って貼り付けてください。")
     
     if theme or comp_list:
         if theme:
-            st.write("**🔍 キーワード欄 用（1つの窓に1単語ずつ入力可能）:**")
-            # 💡 修正①: ORでまとめず、一つずつの独立したコピー窓に分割
-            for i, t in enumerate(theme, 1):
-                st.caption(f"キーワード {i}")
-                st.code(t, language="text")
+            st.write("**🔍 キーワード欄 用:**")
+            # 💡 修正②: 縦長に伸びるのを防ぐため、キーワード窓を2列のグリッドに並べる
+            kw_cols = st.columns(2)
+            for i, t in enumerate(theme):
+                with kw_cols[i % 2]:
+                    st.caption(f"キーワード {i+1}")
+                    st.code(t, language="text")
             
         if comp_list:
             st.write("**🏢 出願人・権利者・企業名欄 用:**")
             st.code(jp_comp_query, language="text")
             
-        # 💡 修正②: 期間（西暦）指定欄用の枠（st.code）を完全に削除しました
-        
         st.write("---")
-        # 💡 修正③: JP-NETボタンの下にJ-PlatPatボタンを追加（幅をきれいに統一）
         st.link_button("JP-NET ログイン画面を開く", "https://www.jp-net.jp/", type="primary", use_container_width=True)
         st.link_button("簡易検索はこちら：特許情報プラットフォーム (J-PlatPat)", "https://www.j-platpat.inpit.go.jp/", use_container_width=True)
     else:
@@ -124,7 +134,7 @@ st.write("---")
 st.markdown("""
 <details>
 <summary>🔒 <b>本システムのセキュリティと安全性の担保について（IT管理者向け）</b></summary>
-<div style="padding: 10px; background-color: #f0f2f6; border-radius: 5px; color: #31333F;">
+<div style="padding: 10px; background-color: #f0f2f6; border-radius: 5px; color: #31333F; font-size: 13px;">
 <ul>
     <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやコピー用テキストに変換するだけの「静的なナビゲーター」です。外部のAIやデータベースへデータを送信することは一切ありません。</li>
     <li><b>アカウント情報の保護</b>: JP-NET等のIDやパスワードをプログラムに入力・保存する領域自体が存在しないため、なりすましや不正アクセスのリスクは構造上0%です。</li>
