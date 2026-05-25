@@ -25,7 +25,7 @@ st.markdown("<h2 style='font-size: 26px; line-height: 1.4; margin-top: 0px; marg
 # 現在の年（西暦）を自動取得
 current_year = datetime.now().year
 
-# 💡 修正①: 追加キーワードに加え、「選択状態（チェック状態）」も記憶する初期設定を追加
+# 追加キーワードに加え、「選択状態（チェック状態）」も記憶する初期設定
 if "custom_list" not in st.session_state:
     st.session_state.custom_list = []
 if "selected_themes" not in st.session_state:
@@ -39,10 +39,7 @@ with st.sidebar:
     base_options = ["風味向上", "日持ち延長", "食感改良"]
     options = base_options + st.session_state.custom_list
     
-    # 💡 修正①: key="selected_themes" を指定し、ユーザーの手動選択をシステムに記憶させます
     theme = st.multiselect("テーマ（複数選択可）", options, key="selected_themes")
-    
-    # 💡 修正②: ラベルを「追加したいテーマ」に変更しました
     custom_input = st.text_input("追加したいテーマ（あれば入力）", placeholder="例: 減塩、糖質オフ")
     
     if custom_input:
@@ -51,7 +48,6 @@ with st.sidebar:
         for item in new_items:
             if item not in st.session_state.custom_list:
                 st.session_state.custom_list.append(item)
-                # 💡 修正①: 新しく文字入力されたテーマを、現在の選択状態リストにも合流させて消えないようにします
                 if item not in st.session_state.selected_themes:
                     st.session_state.selected_themes.append(item)
                 added = True
@@ -94,7 +90,12 @@ elif comp_query:
     scholar_query = comp_query
 
 encoded_scholar_query = urllib.parse.quote(scholar_query)
+
+# ① Google Scholar用のURL（年単位のパラメータ）
 scholar_url = f"https://scholar.google.co.jp/scholar?q={encoded_scholar_query}&as_ylo={period[0]}&as_yhi={period[1]}"
+
+# 💡 ② Google Patents用のURL（日付単位のパラメータに自動変換して組み込み）
+patents_url = f"https://patents.google.com/?q={encoded_scholar_query}&after={period[0]}0101&before={period[1]}1231"
 
 # 4. 画面への出力表示
 st.write("---")
@@ -108,7 +109,13 @@ with col1:
     
     if theme or comp_list:
         st.write(f"**生成されたクエリ:** `{scholar_query}`")
-        st.link_button("Google Scholar で検索を実行", scholar_url, type="primary")
+        st.link_button("Google Scholar で検索を実行", scholar_url, type="primary", use_container_width=True)
+        
+        st.write("---")
+        # 💡 追加箇所: Google Patentsの自動検索セクション
+        st.markdown("##### 🌐 グローバル特許 (Google Patents)")
+        st.info("※クリックすると、海外特許を含む世界中の特許が自動翻訳・期間指定された状態で開きます。")
+        st.link_button("Google Patents で特許検索を実行", patents_url, type="primary", use_container_width=True)
     else:
         st.warning("左側のサイドバーで条件を指定してください。")
 
@@ -159,7 +166,7 @@ st.markdown("""
 <summary>🔒 <b>本システムのセキュリティと安全性の担保について（IT管理者向け）</b></summary>
 <div style="padding: 10px; background-color: #f0f2f6; border-radius: 5px; color: #31333F; font-size: 13px;">
 <ul>
-    <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやコピー用テキストに変換するだけの「静的なナビゲーター」です。外部のAIやデータベースへデータを送信することは一切ありません。</li>
+    <li><b>外部通信の排除</b>: 本アプリは、入力された文字列をブラウザ上でURLやコピー用テキストに変換するだけの「静的なナビゲーター」です。外部 of AIやデータベースへデータを送信することは一切ありません。</li>
     <li><b>アカウント情報の保護</b>: JP-NET等のIDやパスワードをプログラムに入力・保存する領域自体が存在しないため、なりすましや不正アクセスのリスクは構造上0%です。</li>
     <li><b>スクレイピングの不保持</b>: 自動でデータを引っこ抜くようなスクレイピング処理は含まれておらず、あくまでユーザー自身のブラウザの挙動を補助する仕組み（便利リンク）であるため、各サービスの利用規約を完全に遵守しています。</li>
 </ul>
