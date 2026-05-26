@@ -1,10 +1,11 @@
-name: Keep Streamlit App Alive
+name: Keep Streamlit App Alive (Power Up)
 
 on:
   schedule:
-    # 毎日、日本時間の午前9時（UTC 24:00）に自動実行
-    - cron: '0 0 * * *'
-  workflow_dispatch: # ボタンを押して手動で実行することも可能にする
+    # 💡 対策：混雑する0分を避け、中途半端な「23分」に設定
+    # 💡 対策：6時間おき（1日4回：日本時間の 8:23, 14:23, 20:23, 2:23）に激しくノックします
+    - cron: '23 */6 * * *'
+  workflow_dispatch: # 手動で起こすボタンも残します
 
 jobs:
   ping_app:
@@ -12,5 +13,7 @@ jobs:
     steps:
       - name: Wake up Streamlit App
         run: |
-          # 👇 以下のURLをご自身のStreamlitアプリの実際のURLに書き換えてください
-          curl -sI "https://foodtech-appgit-msgjve5ruytzjpnwuqiv9a.streamlit.app/#google-scholar"
+          # 💡 対策：ブラウザ（Chrome）のふりをして、ページ丸ごとをしっかりダウンロードして叩き起こします
+          curl -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+          -s -o /dev/null -w "HTTP Status: %{http_code}\n" \
+          "https://foodtech-appgit-msgjve5ruytzjpnwuqiv9a.streamlit.app/#google-scholar"
